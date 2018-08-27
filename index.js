@@ -44,9 +44,11 @@ export async function showLocation (options) {
 
   let lat = parseFloat(options.latitude)
   let lng = parseFloat(options.longitude)
+  let address = options.address;
   let latlng = `${lat},${lng}`
   let title = options.title && options.title.length ? options.title : null
   let encodedTitle = encodeURIComponent(title)
+  let encodedAddress = encodeURIComponent(address)
   let app = options.app && options.app.length ? options.app : null
   let dialogTitle = options.dialogTitle && options.dialogTitle.length ? options.dialogTitle : 'Open in Maps'
   let dialogMessage = options.dialogMessage && options.dialogMessage.length ? options.dialogMessage : 'What app would you like to use?'
@@ -67,18 +69,45 @@ export async function showLocation (options) {
   switch (app) {
     case 'apple-maps':
       url = prefixes['apple-maps']
-      url = (useSourceDestiny) ? `${url}?saddr=${sourceLatLng}&daddr=${latlng}` : `${url}?ll=${latlng}`
-      url += `&q=${title ? encodedTitle : 'Location'}`
+
+      if (address) {
+        url = (useSourceDestiny) ? `${url}?saddr=${sourceLatLng}&address${address}=&daddr=${address}` : `${url}??daddr=${address}`
+      } else {
+        url = (useSourceDestiny) ? `${url}?saddr=${sourceLatLng}&daddr=${latlng}` : `${url}?ll=${latlng}`
+      }
+
+      if (title) {
+        url += `&q=${title}`
+      }
       break
     case 'google-maps':
       let useTitleForQuery = !options.googleForceLatLon && title
       let googlePlaceId = options.googlePlaceId ? options.googlePlaceId : null
 
       url = prefixes['google-maps']
-      url += `?q=${useTitleForQuery ? encodedTitle : latlng}`
+      if (useTitleForQuery) {
+        if (address) {
+          url += `?q=${encodedAddress}`
+        } else {
+          url += `?q=${encodedTitle}`
+        }
+      } else {
+        if (address) {
+          url += `?q=${encodedAddress}`
+        } else {
+          url += `?q=${latlng}`
+        }
+      }
+      
       url += (isIOS) ? '&api=1' : ''
       url += (googlePlaceId) ? `&query_place_id=${googlePlaceId}` : ''
-      url += (useSourceDestiny) ? `&saddr=${sourceLatLng}&daddr=${latlng}` : `&ll=${latlng}`
+
+      if (address) {
+        url += (useSourceDestiny) ? `&saddr=${sourceLatLng}&daddr=${encodedAddress}` : `&ll=${encodedAddress}`
+      } else {
+        url += (useSourceDestiny) ? `&saddr=${sourceLatLng}&daddr=${latlng}` : `&ll=${latlng}`
+      }
+
       break
     case 'citymapper':
       url = `${prefixes['citymapper']}directions?endcoord=${latlng}`
